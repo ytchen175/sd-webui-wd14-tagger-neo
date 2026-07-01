@@ -95,15 +95,26 @@ class Interrogator:
 
     @staticmethod
     def load_image(path: str) -> Image:
+        # Ensure path is a string for maximum compatibility
+        str_path = str(path) if not isinstance(path, str) else path
         try:
-            return Image.open(path)
+            return Image.open(str_path)
         except FileNotFoundError:
-            print(f'${path} not found')
+            # If Path object failed, the file may genuinely not exist
+            if os.path.exists(str_path):
+                # File exists but Image.open failed, try reading as bytes
+                try:
+                    with open(str_path, 'rb') as f:
+                        return Image.open(io.BytesIO(f.read()))
+                except Exception as e2:
+                    print(f'{str_path} exists but cannot be opened: {e2}')
+            else:
+                print(f'{str_path} not found')
         except UnidentifiedImageError:
             # just in case, user has mysterious file...
-            print(f'${path} is not a  supported image type')
+            print(f'{str_path} is not a supported image type')
         except ValueError:
-            print(f'${path} is not readable or StringIO')
+            print(f'{str_path} is not readable or StringIO')
         return None
 
     def __init__(self, name: str) -> None:

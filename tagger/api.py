@@ -130,9 +130,7 @@ class Api:
         self.running_batches.clear()
         self.runner = None
 
-    def auth(self, creds: Optional[HTTPBasicCredentials] = None):
-        if creds is None:
-            creds = Depends(HTTPBasic())
+    def auth(self, creds: HTTPBasicCredentials = Depends(HTTPBasic())):
         if creds.username in self.credentials:
             if compare_digest(creds.password,
                               self.credentials[creds.username]):

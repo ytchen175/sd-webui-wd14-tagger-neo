@@ -14,7 +14,8 @@ from collections import defaultdict
 from PIL import Image
 
 from modules import shared  # pylint: disable=import-error
-from modules.deepbooru import re_special  # pylint: disable=import-error
+import re
+re_special = re.compile(r'([\\()])')
 from tagger import format as tags_format  # pylint: disable=import-error
 from tagger import settings  # pylint: disable=import-error
 
@@ -63,7 +64,7 @@ class IOData:
     @classmethod
     def update_output_dir(cls, output_dir: str) -> None:
         """ update output directory, and set input and output paths """
-        pout = Path(output_dir)
+        pout = Path(os.path.normpath(output_dir))
         if pout != cls.output_root:
             paths = [x[0] for x in cls.paths]
             cls.paths = []
@@ -85,7 +86,7 @@ class IOData:
                 ret.add(entries[3])
             else:
                 # if there is no checksum, calculate it
-                image = Image.open(entries[0])
+                image = Image.open(str(entries[0]))
                 checksum = cls.get_bytes_hash(image.tobytes())
                 entries.append(checksum)
                 ret.add(checksum)
@@ -95,6 +96,9 @@ class IOData:
     def update_input_glob(cls, input_glob: str) -> None:
         """ update input glob pattern, and set input and output paths """
         input_glob = input_glob.strip()
+
+        # Normalize path separators to OS native separator
+        input_glob = input_glob.replace('/', os.sep).replace('\\', os.sep)
 
         paths = []
 
@@ -116,6 +120,8 @@ class IOData:
         recursive = getattr(shared.opts, 'tagger_batch_recursive', True)
         path_mtimes = []
         for filename in glob(input_glob, recursive=recursive):
+            # Normalize path separators from glob results
+            filename = os.path.normpath(filename)
             if not os.path.isdir(filename):
                 ext = os.path.splitext(filename)[1].lower()
                 if ext in supported_extensions:
@@ -133,12 +139,12 @@ class IOData:
         cls.last_path_mtimes = path_mtimes
 
         if not cls.output_root:
-            cls.output_root = Path(base_dir)
-        elif cls.base_dir and cls.output_root == Path(cls.base_dir):
-            cls.output_root = Path(base_dir)
+            cls.output_root = Path(os.path.normpath(base_dir))
+        elif cls.base_dir and cls.output_root == Path(os.path.normpath(cls.base_dir)):
+            cls.output_root = Path(os.path.normpath(base_dir))
 
         # XXX what is this basedir magic trying to achieve?
-        cls.base_dir_last = Path(base_dir).parts[-1]
+        cls.base_dir_last = Path(os.path.normpath(base_dir)).parts[-1]
         cls.base_dir = base_dir
 
         QData.read_json(cls.output_root)
@@ -152,7 +158,9 @@ class IOData:
         checked_dirs = set()
         cls.paths = []
         for path in paths:
-            path = Path(path)
+            # Use os.path.normpath to normalize the path (resolve mixed
+            # separators, double separators, etc.) before creating Path object
+            path = Path(os.path.normpath(str(path)))
             if not cls.save_tags:
                 cls.paths.append([path, '', ''])
                 continue

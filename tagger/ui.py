@@ -13,7 +13,23 @@ except ImportError:
 from html import escape as html_esc
 
 from modules import ui  # pylint: disable=import-error
-from modules import generation_parameters_copypaste as parameters_copypaste  # pylint: disable=import-error # noqa
+try:
+    from modules import infotext_utils as parameters_copypaste  # pylint: disable=import-error # noqa
+except ImportError:
+    from modules import generation_parameters_copypaste as parameters_copypaste  # pylint: disable=import-error # noqa
+
+
+def bind_buttons(buttons, send_image, send_generate_info):
+    """ bind_buttons was removed from Forge Neo's infotext_utils """
+    if hasattr(parameters_copypaste, 'bind_buttons'):
+        return parameters_copypaste.bind_buttons(buttons, send_image, send_generate_info)
+    for tabname, button in buttons.items():
+        parameters_copypaste.register_paste_params_button(parameters_copypaste.ParamBinding(
+            paste_button=button, tabname=tabname,
+            source_text_component=send_generate_info if isinstance(send_generate_info, gr.components.Component) else None,
+            source_image_component=send_image,
+            source_tabname=send_generate_info if isinstance(send_generate_info, str) else None,
+        ))
 
 try:
     from modules.call_queue import wrap_gradio_gpu_call
@@ -368,7 +384,7 @@ def on_ui_tabs():
                         )
 
                         with gr.Row():
-                            parameters_copypaste.bind_buttons(
+                            bind_buttons(
                                 parameters_copypaste.create_buttons(
                                     ["txt2img", "img2img"],
                                 ),

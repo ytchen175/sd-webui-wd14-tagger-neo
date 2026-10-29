@@ -22,8 +22,9 @@ from . import dbimutils  # pylint: disable=import-error # noqa
 Its = settings.InterrogatorSettings
 
 # select a device to process
-use_cpu = ('all' in shared.cmd_opts.use_cpu) or (
-    'interrogate' in shared.cmd_opts.use_cpu)
+# Forge Neo (2026-10+) dropped the --use-cpu flag
+_use_cpu_opt = getattr(shared.cmd_opts, 'use_cpu', None) or []
+use_cpu = ('all' in _use_cpu_opt) or ('interrogate' in _use_cpu_opt)
 
 # https://onnxruntime.ai/docs/execution-providers/
 # https://github.com/toriato/stable-diffusion-webui-wd14-tagger/commit/e4ec460122cf674bbf984df30cdb10b4370c1224#r92654958
